@@ -24,12 +24,10 @@ import com.greenaddress.greenbits.ui.UI;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GeneralPreferenceFragment extends GAPreferenceFragment
-    implements Preference.OnPreferenceClickListener {
+public class GeneralPreferenceFragment extends GAPreferenceFragment {
     private static final String TAG = GeneralPreferenceFragment.class.getSimpleName();
 
     private static final int PINSAVE = 1337;
-    private Preference mToggleSW;
     private Preference mFeeRate;
 
     @Override
@@ -290,73 +288,13 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             optInRbf.setChecked(replace_by_fee);
         }
 
-        mToggleSW = find("toggle_segwit");
-        if (GaService.IS_ELEMENTS)
-            removePreference(mToggleSW);
-        else {
-            mToggleSW.setOnPreferenceClickListener(this);
-            setupSWToggle();
-        }
-
         if (GaService.IS_ELEMENTS)
             removePreference("settings_currency");
 
         getActivity().setResult(Activity.RESULT_OK, null);
     }
 
-    private void setupSWToggle() {
-        final boolean segwit = mService.getLoginData().get("segwit_server");
-        final boolean userSegwit = mService.isSegwitEnabled();
-
-        mToggleSW.setTitle(userSegwit ? R.string.segwit_disable : R.string.segwit_enable);
-
-        if (!segwit) {
-            // Server does not support segwit: Do not show the pref
-            getPreferenceScreen().removePreference(mToggleSW);
-        } else if (!userSegwit || mService.isSegwitUnlocked()) {
-            // User hasn't enabled segwit, or they have but we haven't
-            // generated a segwit address yet (that we know of).
-            mToggleSW.setEnabled(true);
-        } else {
-            mToggleSW.setEnabled(false);
-        }
-    }
-
     private void setFeeRateSummary(final String feeRate) {
         mFeeRate.setSummary(feeRate.isEmpty() ? "" : feeRate + " sat/kB");
     }
-
-    @Override
-    public boolean onPreferenceClick(final Preference preference) {
-        if (preference == mToggleSW)
-            return onToggleSWClicked();
-        return false;
-    }
-
-    private boolean onToggleSWClicked() {
-        getActivity().runOnUiThread(new Runnable() {
-            public void run() { mToggleSW.setEnabled(false); }
-        });
-        final boolean immediate = true;
-        CB.after(mService.setUserConfig("use_segwit", !mService.isSegwitEnabled(), immediate),
-                 new CB.Op<Boolean>() {
-            @Override
-            public void onSuccess(final Boolean result) {
-                toggle();
-            }
-            @Override
-            public void onFailure(final Throwable t) {
-                super.onFailure(t);
-                toggle();
-            }
-            private void toggle() {
-                getActivity().runOnUiThread(new Runnable() {
-                    public void run() { setupSWToggle(); }
-                });
-            }
-
-        });
-        return false;
-    }
-
 }

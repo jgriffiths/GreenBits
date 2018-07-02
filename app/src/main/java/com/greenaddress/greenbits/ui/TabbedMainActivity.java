@@ -82,12 +82,10 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     private String mSendAmount;
     private Dialog mTwoFactorDialog;
     private Dialog mTwoFactorResetDialog;
-    private MaterialDialog mSegwitDialog;
     private MaterialDialog mSubaccountDialog;
     private FloatingActionButton mSubaccountButton;
     private boolean mTwoFactorResetShowing = false;
 
-    private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
     private final Runnable mSubaccountCB = new Runnable() { public void run() { mDialogCB.run(); mSubaccountDialog = null; } };
     private final Runnable mDialogCB = new Runnable() { public void run() { setBlockWaitDialog(false); } };
 
@@ -355,24 +353,12 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             return;
         }
 
+        // FIXME: Once the server automatically enables segwit on login,
+        //        this code can be removed.
         final boolean segwit = mService.getLoginData().get("segwit_server");
         if (segwit && mService.isSegwitUnconfirmed()) {
-            // The user has not yet enabled segwit. Opt them in and display
-            // a dialog explaining how to opt-out.
-            CB.after(mService.setUserConfig("use_segwit", true, false),
-                     new CB.Toast<Boolean>(this) {
-                @Override
-                public void onSuccess(final Boolean result) {
-                    TabbedMainActivity.this.runOnUiThread(new Runnable() {
-                        public void run() {
-                            mSegwitDialog = UI.popup(TabbedMainActivity.this, R.string.segwit_dialog_title, 0)
-                                              .content(R.string.segwit_dialog_content).build();
-                            UI.setDialogCloseHandler(mSegwitDialog, mSegwitCB);
-                            mSegwitDialog.show();
-                        }
-                    });
-                }
-            });
+            // The user has not yet enabled segwit, enable it
+            mService.setUserConfig("use_segwit", true, false);
         }
     }
 
@@ -399,7 +385,6 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         mService.deleteTwoFactorObserver(mTwoFactorObserver);
         mService.deleteConnectionObserver(this);
         mSubaccountDialog = UI.dismiss(this, mSubaccountDialog);
-        mSegwitDialog = UI.dismiss(this, mSegwitDialog);
     }
 
     @Override
